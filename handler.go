@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -209,7 +210,12 @@ func historyHandler(message *discordgo.Message) {
 							for _, iAttachment := range msg.Attachments {
 								if len(findDownloadedImageByUrl(iAttachment.URL)) == 0 {
 									i++
-									startDownload(iAttachment.URL, iAttachment.Filename, folder, msg.ChannelID, msg.Author.ID, fileTime)
+									for _, reaction := range msg.Reactions {
+										folderFull := folder + "/" + reaction.Emoji.Name + "/" + strconv.Itoa(reaction.Count)
+										startDownload(iAttachment.URL, iAttachment.Filename,
+											folderFull,
+											msg.ChannelID, msg.Author.ID, fileTime)
+									}
 								}
 							}
 							foundUrls := xurls.Strict().FindAllString(msg.Content, -1)
@@ -218,7 +224,10 @@ func historyHandler(message *discordgo.Message) {
 								for link, filename := range links {
 									if len(findDownloadedImageByUrl(link)) == 0 {
 										i++
-										startDownload(link, filename, folder, msg.ChannelID, msg.Author.ID, fileTime)
+										for _, reaction := range msg.Reactions {
+											folderFull := folder + "/" + reaction.Emoji.Name + "/" + strconv.Itoa(reaction.Count)
+											startDownload(link, filename, folderFull, msg.ChannelID, msg.Author.ID, fileTime)
+										}
 									}
 								}
 							}
