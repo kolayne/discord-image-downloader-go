@@ -172,8 +172,8 @@ func historyHandler(message *discordgo.Message) {
 		idArray := strings.Split(message.Content, ",")
 		for _, channelValue := range idArray {
 			channelValue = strings.TrimSpace(channelValue)
-			if folder, ok := ChannelWhitelist[channelValue]; ok {
-				dg.ChannelMessageSend(message.ChannelID, fmt.Sprintf("downloading to `%s`", folder))
+			if mainFolder, ok := ChannelWhitelist[channelValue]; ok {
+				dg.ChannelMessageSend(message.ChannelID, fmt.Sprintf("downloading to `%s`", mainFolder))
 				historyCommandActive[message.ChannelID] = "downloading"
 				lastBefore := ""
 				var lastBeforeTime time.Time
@@ -207,13 +207,25 @@ func historyHandler(message *discordgo.Message) {
 								dg.ChannelMessageSend(message.ChannelID, "cancelled history downloading")
 								break MessageRequestingLoop
 							}
+
+							reactionsAliases := map[string]string{"♥️": "🔴", "❤️": "🔴"}
+
+							parsedReactions := map[string]int{}
+							for _, reaction := range msg.Reactions {
+								name := reaction.Emoji.Name
+								if alias, ok := reactionsAliases[name]; ok {
+									name = alias
+								}
+								parsedReactions[name] += reaction.Count
+							}
+
 							for _, iAttachment := range msg.Attachments {
 								if len(findDownloadedImageByUrl(iAttachment.URL)) == 0 {
 									i++
-									for _, reaction := range msg.Reactions {
-										folderFull := folder + "/" + reaction.Emoji.Name + "/" + strconv.Itoa(reaction.Count)
+									for emoji, count := range parsedReactions {
+										fullPath := mainFolder + "/" + emoji + "/" + strconv.Itoa(count)
 										startDownload(iAttachment.URL, iAttachment.Filename,
-											folderFull,
+											fullPath,
 											msg.ChannelID, msg.Author.ID, fileTime)
 									}
 								}
@@ -224,9 +236,9 @@ func historyHandler(message *discordgo.Message) {
 								for link, filename := range links {
 									if len(findDownloadedImageByUrl(link)) == 0 {
 										i++
-										for _, reaction := range msg.Reactions {
-											folderFull := folder + "/" + reaction.Emoji.Name + "/" + strconv.Itoa(reaction.Count)
-											startDownload(link, filename, folderFull, msg.ChannelID, msg.Author.ID, fileTime)
+										for emoji, count := range parsedReactions {
+											fullPath := mainFolder + "/" + emoji + "/" + strconv.Itoa(count)
+											startDownload(link, filename, fullPath, msg.ChannelID, msg.Author.ID, fileTime)
 										}
 									}
 								}
